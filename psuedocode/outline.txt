@@ -1,0 +1,81 @@
+GAME STATE: Waiting to begin
+
+ACTION: Start Game
+  All players dealt 6 cards
+
+GAME STATE: Gameplay
+  PLAYER STATE: Attack
+    ACTION: (Only first attack) Pick a card to Attack with
+    ACTION: Attack again with a card present in play area
+    Wait for Defence
+  PLAYER STATE: Defend
+    Wait for Attack
+    ACTION: Defend against attack
+    ACTION: Lightning - Play same card attacked with (must be before they defend) to make the following Attacker into the Defender of the round
+    ACTION: End turn and pick up cards in play area
+
+ACTION: End Turn
+  Options: 
+    Defender succesfully defended against 6 cards (or number of cards in their hand)
+    Defender succesfully defends against all cards in play area
+    AND
+      Attackers have no valid cards to attack with
+      OR
+      Attackers decide not to attack
+
+GAME STATE: Switch Turn
+  Optional:
+    If the Defender is picking up cards, Attackers may give them cards from their hand which match cards being picked up, up to a maximum of 6 new cards for the Defender
+  Attackers draws cards up to 6
+    Starting from the player to the Defender's left, clockwise
+  Defender draws cards up to 6
+  Lose Condition:
+        After the draw pile has been expended, if a player has no more cards, they exit the game
+        The final player to be in the game loses
+  Player to Defender's left becomes Defender
+  Previous Defender becomes Attacker
+    Defender begins the following round if they succefully defended
+    Defender is skipped over as first attacker if they picked up cards
+      (In a two player game, the Defender remains the Defender until they succesfully block the Attacker's cards)
+
+GAME STATE: Game Over
+  The final player has been declared the Durak
+  Same as GAME STATE: Waiting to Begin
+    Additional message of which player lost
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Variables
+	Started
+	Players
+		Role
+		Hand
+	PlayArea
+		Max
+	CloserSuit
+
+Functions
+	Draw(x)
+		Adds x cards to player's hand
+	SwitchRole
+		Toggles player from Attack to Defence
+	Enable/Disable Cards SortableJS
+		Allows attacker to play any card initially
+		Disallows attacker from playing invalid cards
+		Allows defender to block attacks with valid cards
+
+		Defender can only play on existing cards in play area
+		Attacker can only play on open spots in play area
+	CheckValidMove
+		Helper function for enable/disable
+		Ensures that a card attempting to be played follows the rules:
+			Attacker:
+				Initial attack (any card)
+				Follow-up attack (present in play area)
+			Defender:
+				Lightning (Same card as present in play area, no cards defended yet)
+				Block (higher rank of same suit or closing suit)
+	ExitGame
+		Player has run out of cards
+	DeclareDurak
+		Last player standing
