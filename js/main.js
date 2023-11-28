@@ -27,9 +27,8 @@ class Game {
     }
     deal(player, num) {
         for(let i = 0; i < num; i++){
-            retVal.push(this.deck.shift())
+            player.hand.push(this.deck.shift())
         }
-        return retVal;
     }
     determineCloser(){
         const vals = Object.values(this.deck);
