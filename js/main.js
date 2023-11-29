@@ -31,9 +31,7 @@ class Game {
         }
     }
     determineCloser(){
-        console.log("vals")
         const vals = Object.values(this.deck);
-        
         this.closer = vals[vals.length - 1].suit
     }
 }
@@ -56,8 +54,8 @@ class Player {
         const newCardEl = document.createElement("img");
         newCardEl.src = card.src;
         newCardEl.id = card.id;
-        newCardEl.classList.add(`${card.rank}`);
-        newCardEl.classList.add(`${card.suit}`);
+        newCardEl.classList.add(`rank-${card.rank}`);
+        newCardEl.classList.add(`suit-${card.suit}`);
         newCardEl.classList.add('Card');
         newCardEl.classList.add(this.role)
         newCardEl.style.padding = "0px 5px 0px 5px"
@@ -79,21 +77,60 @@ class Computer extends Player {
 /*----- functions -----*/
 function init(){
     let game = new Game();
-    console.log(`game.closer: ${game.closer}`)
-    console.log(`game.deck: ${game.deck}`)
-    console.log(`attackerHand: ${attackerHand}`)
-    console.log(`defenderHands: ${defenderHand}`)
     let attacker = new Player(attackerHand, ATTACK);
-    console.log(attacker)
     game.deal(attacker, 6);
-    console.log(attacker.hand)
     let defender = new Player(defenderHand, DEFEND);
     game.deal(defender, 6);
-    console.log(defender.hand)
 }
 
 init();
 
+function currentRanksInPlay(cardEls) {
+    // TO-DO - Get ranks of defender's cards
+    const ranks = [];
+    for(let i = 0; i < cardEls.length; i++) {
+        let card = cardEls[i];
+        let rankClasses = getRank([...card.children[0].classList]);
+        if(rankClasses) {
+            ranks.push(rankClasses)
+        }
+    }
+    return ranks;
+}
+
+function getRank(classes){
+    return [...classes].find(className => className.startsWith("rank-")).split('-')[1];
+}
+
+function getRole(classes){
+    return [...classes].find(role => role === ATTACK || role === DEFEND) || null;
+}
+
+function isCardValid(role, areaPlayed, cardPlayed, playedOn){
+    if(role === ATTACK && areaPlayed.id === "PlayArea"){
+        const empty = areaPlayed.children.length === 0;
+        if(empty) return true;
+        const lessThanMax = areaPlayed.children.length < 6;
+        const currentRanks = currentRanksInPlay(areaPlayed.children);
+        const matchesRank = currentRanks.includes(getRank(cardPlayed.classList));
+        return lessThanMax && matchesRank;
+    } else if(role === DEFEND && areaPlayed.id === "AttackCard"){
+        const openCard = areaPlayed.children.length === 1;
+        if(!openCard) return false;
+        // TO-DO: Logic Below
+        const sameSuit = 0;
+        const higherRank = 0;
+        // TO-DO: Logic Above
+        if(sameSuit && higherRank) return true;
+        // TO-DO: Logic Below
+        const playedClosingSuit = 0;
+        const playedOnClosingSuit = 0;
+        // TO-DO: Logic Above
+        if(!playedOnClosingSuit && playedClosingSuit) return true;
+        return false;
+    }
+    return false;
+}
 
 /*----- Sortable JS -----*/
 new Sortable(attackerHand, {
@@ -119,14 +156,16 @@ new Sortable(playArea, {
     group: {
         name: 'playArea',
         pull: false,
-        put: function(to, from) {
-            return (to.el.children.length < 6) && from.el.classList.contains("AttackerHand")
+        put: function(to, from, cardPlayed) {
+            const role = getRole(cardPlayed.classList)
+            return isCardValid(role, to.el, cardPlayed)
         }
     },
     animation: 150,
     sort: false,
     swapThreshold: 0,
     onAdd: function(evt) {
+        // console.log(evt)
         const attackCard = document.createElement("div");
         attackCard.classList.add("AttackCard")
         attackCard.appendChild(evt.item);
@@ -136,8 +175,11 @@ new Sortable(playArea, {
             group: {
                 name: 'attackCard',
                 pull: false,
-                put: function(to, from) {
-                    return (to.el.children.length === 1) && (from.el.classList.contains("DefenderHand"))
+                put: function(to, from, cardPlayed) {
+                    const playedOn = to.el.children[0];
+                    const role = getRole(cardPlayed.classList);
+                    return isCardValid(role, to.el, cardPlayed, playedOn);
+                    // return (to.el.children.length === 1) && (from.el.classList.contains("DefenderHand"))
                 },
             },
             sort: false,

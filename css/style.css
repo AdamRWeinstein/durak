@@ -42,4 +42,5 @@ body {
 .Card {
     max-height: 20vmin;
     max-width: 40vmin;
+    transition: all ease-in-out .5;
 }
