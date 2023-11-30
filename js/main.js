@@ -1,31 +1,27 @@
-/*
-Questions
-    Best practices? getCloser() or .closer
-    Class vs ID: Helper function or better structure?
-    Constants - Yes, use more
-*/
-
-
 /*----- imports -----*/
 import {CARDS, ROLE_ATTACK, ROLE_DEFEND, ATTACK_CARD, DEFEND_CARD} from './constants.js'
 
+
 /*----- state variables -----*/
 let game;
-
+let currentPlayers = 0;
 
 /*----- cached elements  -----*/
 const playArea = document.querySelector(".PlayArea");
 const attackerHand = document.querySelector(".AttackerHand"); 
 const defenderHand = document.querySelector(".DefenderHand"); 
-
+const attackerEndButton = document.querySelector("#AttackerEndTurn")
 
 /*----- event listeners -----*/
+attackerEndButton.addEventListener("click", endAttack)
 
 /*----- Classes -----*/
 class Game {
     constructor(){
         this.deck = this.shuffle(CARDS);
         this.closer = this.determineCloser();
+        this.playerTurn = this.setPlayerTurn(1);
+        this.players = [];
         console.log(`closer: ${this.closer}`)
     } 
     shuffle(cards) {
@@ -45,13 +41,20 @@ class Game {
         const vals = Object.values(this.deck);
         return vals[vals.length - 1].suit;
     }
+    setPlayerTurn(playerId){
+        this.playerTurn = playerId;
+    }
+    switchTurn(){
+
+    }
 }
 
 class Player {
-    constructor(handEl, role){
+    constructor(handEl, role, id){
         this.hand = [];
         this.handEl = handEl;
         this.role = role;
+        this.playerId = id;
         this.exited = false;
     }
     setAttack(){
@@ -74,6 +77,9 @@ class Player {
         this.handEl.appendChild(newCardEl);
         this.hand.push(card)
     }
+    getNumberOfCards(){
+        return this.handEl.children.length;
+    }
     exit(){
         this.exited = true;
     }
@@ -88,24 +94,36 @@ class Computer extends Player {
 /*----- functions -----*/
 function init(){
     game = new Game();
-    let attacker = new Player(attackerHand, ROLE_ATTACK);
-    game.deal(attacker, 6);
-    let defender = new Player(defenderHand, ROLE_DEFEND);
-    game.deal(defender, 6);
+    game.setPlayerTurn(0);
+    let player1 = new Player(attackerHand, ROLE_ATTACK, currentPlayers++);
+    game.players.push(player1);
+    game.deal(player1, 6);
+    let player2 = new Player(defenderHand, ROLE_DEFEND, currentPlayers++);
+    game.players.push(player2);
+    game.deal(player2, 6);
 }
 
 init();
 
+function renderButtons(){
+    if((game.playerTurn === 0 && attackerEndButton.classList.contains("hidden"))
+     || game.playerTurn === 1 && !attackerEndButton.classList.contains("hidden")) {
+        attackerEndButton.classList.toggle("hidden");
+    }
+}
+
 function currentRanksInPlay(cardEls) {
-    // TO-DO - Get ranks of defender's cards
+    console.log(cardEls);
+    console.log(cardEls[0]);
+    console.log(cardEls[1]);
     const ranks = [];
     for(let i = 0; i < cardEls.length; i++) {
-        let card = cardEls[i];
-        let rankClasses = getRank([...card.children[0].classList]);
-        if(rankClasses) {
-            ranks.push(rankClasses)
+        let cardStack = cardEls[i];
+        for(let j = 0; j < cardStack.children.length; j++){
+            ranks.push(getRank([...cardStack.children[j].classList]))
         }
     }
+    console.log(`ranks: ${ranks}`)
     return ranks;
 }
 
@@ -149,14 +167,19 @@ function isCardValid(role, areaPlayed, cardPlayed, playedOn){
     return false;
 }
 
+function endAttack(){
+    game.swapTurns();
+}
+
 /*----- Sortable JS -----*/
 new Sortable(attackerHand, {
     group: {
         name: 'attackerHand',
-        pull: true,
+        pull: () => game.playerTurn === 0,
         put: false
     },
-    animation: 150
+    animation: 150,
+    sort: true
 });
 
 
@@ -182,10 +205,12 @@ new Sortable(playArea, {
     sort: false,
     swapThreshold: 0,
     onAdd: function(evt) {
+        game.playerTurn = 1;
         const attackCard = document.createElement("div");
         attackCard.classList.add(ATTACK_CARD)
         attackCard.appendChild(evt.item);
-        evt.to.appendChild(attackCard)
+        evt.to.appendChild(attackCard);
+        renderButtons();
         
         new Sortable(attackCard, {
             group: {
@@ -201,6 +226,8 @@ new Sortable(playArea, {
             onAdd: function(evt) {
                 evt.item.classList.add(DEFEND_CARD)
                 evt.to.appendChild(evt.item)
+                game.playerTurn = 0;
+                renderButtons();
             },
             direction: "vertical",
             swapThreshold: 0

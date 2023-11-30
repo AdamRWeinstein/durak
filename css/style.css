@@ -21,13 +21,13 @@ body {
     flex-wrap: wrap;
 }
 
-.AttackCard {
+.ATTACK_CARD {
     display: flex;
     flex-direction: column;
     position: relative;
 }
 
-.AttackCard > .DEFEND{
+.ATTACK_CARD > .DEFEND{
     position: absolute;
     top: 15%;
     left: 15%;
@@ -43,4 +43,27 @@ body {
     max-height: 20vmin;
     max-width: 40vmin;
     transition: all ease-in-out .5;
+}
+
+.AttackerHandContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#AttackerEndTurn {
+    background-color: black;
+    border: none;
+    color: white;
+    text-align: center;
+    font-size: 22px;
+    margin-top: 40px;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 100px;
+    height: 100px;
+}
+
+.hidden {
+    visibility: hidden;
 }
