@@ -29,4 +29,5 @@ After each round, players draw back up to six cards as needed. The order always 
 ### Stretch Goals
 - [ ] Multiplayer
 - [ ] Tutorial
+- [ ] Lightning Gameplay
 - [ ] Advanced Computer Players
