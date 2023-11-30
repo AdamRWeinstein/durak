@@ -1,10 +1,20 @@
+/*
+Questions
+    Best practices? getCloser() or .closer
+    Class vs ID: Helper function or better structure?
+    Constants - Yes, use more
+*/
+
+
 /*----- imports -----*/
-import {CARDS, ATTACK, DEFEND} from './constants.js'
+import {CARDS, ROLE_ATTACK, ROLE_DEFEND, ATTACK_CARD, DEFEND_CARD} from './constants.js'
 
 /*----- state variables -----*/
+let game;
+
 
 /*----- cached elements  -----*/
-const playArea = document.getElementById("PlayArea");
+const playArea = document.querySelector(".PlayArea");
 const attackerHand = document.querySelector(".AttackerHand"); 
 const defenderHand = document.querySelector(".DefenderHand"); 
 
@@ -15,7 +25,8 @@ const defenderHand = document.querySelector(".DefenderHand");
 class Game {
     constructor(){
         this.deck = this.shuffle(CARDS);
-        this.determineCloser();
+        this.closer = this.determineCloser();
+        console.log(`closer: ${this.closer}`)
     } 
     shuffle(cards) {
         let cardsArray = Object.values(cards);
@@ -32,7 +43,7 @@ class Game {
     }
     determineCloser(){
         const vals = Object.values(this.deck);
-        this.closer = vals[vals.length - 1].suit
+        return vals[vals.length - 1].suit;
     }
 }
 
@@ -44,10 +55,10 @@ class Player {
         this.exited = false;
     }
     setAttack(){
-        this.role = ATTACK
+        this.role = ROLE_ATTACK
     }
     setDefend(){
-        this.role = DEFEND
+        this.role = ROLE_DEFEND
     }
     setHandEl(){}
     addCard(card){
@@ -76,10 +87,10 @@ class Computer extends Player {
 
 /*----- functions -----*/
 function init(){
-    let game = new Game();
-    let attacker = new Player(attackerHand, ATTACK);
+    game = new Game();
+    let attacker = new Player(attackerHand, ROLE_ATTACK);
     game.deal(attacker, 6);
-    let defender = new Player(defenderHand, DEFEND);
+    let defender = new Player(defenderHand, ROLE_DEFEND);
     game.deal(defender, 6);
 }
 
@@ -99,34 +110,40 @@ function currentRanksInPlay(cardEls) {
 }
 
 function getRank(classes){
-    return [...classes].find(className => className.startsWith("rank-")).split('-')[1];
+    return Number([...classes].find(className => className.startsWith("rank-")).split('-')[1]);
+}
+
+function getSuit(classes){
+    return [...classes].find(className => className.startsWith("suit-")).split('-')[1];
 }
 
 function getRole(classes){
-    return [...classes].find(role => role === ATTACK || role === DEFEND) || null;
+    return [...classes].find(role => role === ROLE_ATTACK || role === ROLE_DEFEND) || null;
+}
+
+function getAreaPlayedType(areaPlayed){
+    return [...areaPlayed.classList].find(playArea => playArea === "PlayArea" || playArea === ATTACK_CARD) || null;
 }
 
 function isCardValid(role, areaPlayed, cardPlayed, playedOn){
-    if(role === ATTACK && areaPlayed.id === "PlayArea"){
+    const areaPlayedType = getAreaPlayedType(areaPlayed);
+    if(role === ROLE_ATTACK && areaPlayedType === "PlayArea"){
         const empty = areaPlayed.children.length === 0;
         if(empty) return true;
         const lessThanMax = areaPlayed.children.length < 6;
         const currentRanks = currentRanksInPlay(areaPlayed.children);
         const matchesRank = currentRanks.includes(getRank(cardPlayed.classList));
         return lessThanMax && matchesRank;
-    } else if(role === DEFEND && areaPlayed.id === "AttackCard"){
+    } else if(role === ROLE_DEFEND && areaPlayedType === ATTACK_CARD){
         const openCard = areaPlayed.children.length === 1;
         if(!openCard) return false;
-        // TO-DO: Logic Below
-        const sameSuit = 0;
-        const higherRank = 0;
-        // TO-DO: Logic Above
+        const sameSuit = getSuit(cardPlayed.classList) === getSuit(playedOn.classList);        
+        const higherRank = getRank(cardPlayed.classList) > getRank(playedOn.classList);
         if(sameSuit && higherRank) return true;
-        // TO-DO: Logic Below
-        const playedClosingSuit = 0;
-        const playedOnClosingSuit = 0;
-        // TO-DO: Logic Above
+        const playedClosingSuit = getSuit(cardPlayed.classList) === game.closer;
+        const playedOnClosingSuit = getSuit(playedOn.classList) === game.closer;
         if(!playedOnClosingSuit && playedClosingSuit) return true;
+        if(playedOnClosingSuit && playedClosingSuit && higherRank) return true;
         return false;
     }
     return false;
@@ -165,9 +182,8 @@ new Sortable(playArea, {
     sort: false,
     swapThreshold: 0,
     onAdd: function(evt) {
-        // console.log(evt)
         const attackCard = document.createElement("div");
-        attackCard.classList.add("AttackCard")
+        attackCard.classList.add(ATTACK_CARD)
         attackCard.appendChild(evt.item);
         evt.to.appendChild(attackCard)
         
@@ -179,12 +195,11 @@ new Sortable(playArea, {
                     const playedOn = to.el.children[0];
                     const role = getRole(cardPlayed.classList);
                     return isCardValid(role, to.el, cardPlayed, playedOn);
-                    // return (to.el.children.length === 1) && (from.el.classList.contains("DefenderHand"))
-                },
+                }
             },
             sort: false,
             onAdd: function(evt) {
-                evt.item.classList.add("DefenderCard")
+                evt.item.classList.add(DEFEND_CARD)
                 evt.to.appendChild(evt.item)
             },
             direction: "vertical",

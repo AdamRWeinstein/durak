@@ -217,5 +217,7 @@ export const CARDS = {
     }
 }
 
-export const ATTACK = "ATTACK";
-export const DEFEND = "DEFEND";
+export const ROLE_ATTACK = "ATTACK";
+export const ROLE_DEFEND = "DEFEND";
+export const ATTACK_CARD = "ATTACK_CARD";
+export const DEFEND_CARD = "DEFEND_CARD";
