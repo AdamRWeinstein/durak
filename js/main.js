@@ -16,6 +16,7 @@ const player2EndTurn = document.querySelector("#Player2EndTurn")
 const player1title = document.querySelector(".Player1HandContainer > h1")
 const player2title = document.querySelector(".Player2HandContainer > h1")
 
+
 /*----- event listeners -----*/
 player1EndTurn.addEventListener("click", clickEndTurn)
 player2EndTurn.addEventListener("click", clickEndTurn)
@@ -30,7 +31,6 @@ class Game {
         this.currentAttackerIndex = null;
         this.playerTurnIndex = null;
         this.players = [];
-        console.log(`closer: ${this.closer}`)
         this.endGame = false;
     }
     shuffle(cards) {
@@ -53,31 +53,41 @@ class Game {
     setDefender(playerIndex) {
         this.defenderIndex = playerIndex;
     }
-    playToDefender(){
-        game.playerTurnIndex = game.defenderIndex;
+    playToDefender() {
+        if(this.endGame && this.players[this.currentAttackerIndex].handEl.children.length === 0){
+            this.players[this.currentAttackerIndex].exit();
+            // this.currentAttackerIndex = this.getNextAttackerIndex();
+        }
+        this.playerTurnIndex = this.defenderIndex;
         renderButtons();
     }
-    playByDefender(){
-        game.playerTurnIndex = game.currentAttackerIndex;
+    playByDefender() {
+        if(this.endGame && this.players[this.defenderIndex].handEl.children.length === 0) {
+            this.players[this.defenderIndex].exit();
+        }
+        this.playerTurnIndex = this.currentAttackerIndex;
         renderButtons();
     }
-    endTurn(){
+    getNextAttackerIndex(){
+        //TO-DO - Multiplayer
+    }
+    endTurn() {
         // TO-DO: Logic for multiplayer
         this.endRound(this.playerTurnIndex === this.firstAttackerIndex)
     }
     endRound(triggeredByAttacker) {
         const atk = this.players[Number(!this.defenderIndex)];
         const def = this.players[this.defenderIndex];
-        if(!triggeredByAttacker) {
+        if (!triggeredByAttacker) {
             let cards = getCardsInPlayArea();
-            for(let i = 0; i < cards.length; i++){
-                def.addCard(cards[i]);
+            for (let i = 0; i < cards.length; i++) {
+                def.addCard(this.makeCard(cards[i]));
             }
         }
         clearPlayArea();
         this.deal(atk, 6 - atk.getNumberOfCards());
         this.deal(def, 6 - def.getNumberOfCards());
-        if(this.deck.length === 0) this.endGame = true;
+        if (this.deck.length === 0) this.endGame = true;
         this.changeRoles(!triggeredByAttacker);
         renderHandTitles();
     }
@@ -117,27 +127,37 @@ class Game {
         this.defenderIndex = this.firstAttackerIndex + 1;
         if (this.defenderIndex >= this.players.length) this.defenderIndex = 0;
     }
-    playerExited(playerIndex){
-        players[playerIndex].exit = true;
-        playersRemaining = 0;
-        playersRemainingIndexes = [];
-        for(let i = 0; i < players.length; i++){
-            if(!players[i].exit) {
+    playerExited(playerIndex) {
+        this.players[playerIndex].exited = true;
+        let playersRemaining = 0;
+        let playersRemainingIndexes = [];
+        for (let i = 0; i < this.players.length; i++) {
+            if (!this.players[i].exited) {
                 playersRemaining++;
                 playersRemainingIndexes.push(i)
             }
         }
-        if(playersRemaining === 1) {
-            player1Hand.add("hidden");
-            player2Hand.add("hidden");
+        if (playersRemaining === 1) {
+            player1Hand.classList.add("hidden");
+            player1title.classList.add("hidden");
+            player2Hand.classList.add("hidden");
+            player2title.classList.add("hidden");
+            player1EndTurn.classList.add("hidden");
+            player2EndTurn.classList.add("hidden");
             messageHeader.innerText = `Player ${playersRemainingIndexes[0] + 1} loses!`
+        }
+    }
+    makeCard(img) {
+        return {
+            rank: getRank(img.classList),
+            suit: getSuit(img.classList),
+            src: new URL(img.src).pathname
         }
     }
 }
 
 class Player {
     constructor(handEl, buttonEl, role, index) {
-        this.hand = [];
         this.handEl = handEl;
         this.buttonEl = buttonEl;
         this.role = role;
@@ -159,20 +179,18 @@ class Player {
         newCardEl.classList.add(`suit-${card.suit}`);
         newCardEl.classList.add('Card');
         newCardEl.classList.add(this.role)
-        newCardEl.style.padding = "0px 5px 0px 5px"
-        newCardEl.style.width = '15vmin';
+        newCardEl.style.margin = "0px 5px 0px 5px"
         this.handEl.appendChild(newCardEl);
-        this.hand.push(card)
     }
     getNumberOfCards() {
         return this.handEl.children.length;
     }
     exit() {
-        game.playerExited(this.index);
+        game.playerExited(this.playerIndex);
     }
     swapRole() {
         this.role = this.role === ROLE_ATTACK ? ROLE_DEFEND : ROLE_ATTACK;
-        for(let i = 0; i < this.handEl.children.length; i++){
+        for (let i = 0; i < this.handEl.children.length; i++) {
             this.handEl.children[i].classList.toggle("ATTACK")
             this.handEl.children[i].classList.toggle("DEFEND")
         }
@@ -210,7 +228,7 @@ function renderButtons() {
 }
 
 function renderButton(player) {
-    if(game.playerTurnIndex === player.playerIndex) player.buttonEl.classList.remove("hidden");
+    if (game.playerTurnIndex === player.playerIndex) player.buttonEl.classList.remove("hidden");
     else player.buttonEl.classList.add("hidden");
 }
 
@@ -230,18 +248,14 @@ function currentRanksInPlay(cardEls) {
     return ranks;
 }
 
-function getCardsInPlayArea(){
+function getCardsInPlayArea() {
     const cards = [];
-    console.log("playArea.children")
-    console.log(playArea.children)
     for (let i = 0; i < playArea.children.length; i++) {
         let cardStack = [...playArea.children[i].children];
         for (let k = 0; k < cardStack.length; k++) {
             cards.push(cardStack[k])
         }
     }
-    console.log("cards")
-    console.log(cards)
     return cards;
 }
 
@@ -293,16 +307,6 @@ function clickEndTurn(evt) {
 
 function clearPlayArea() {
     playArea.innerHTML = '';
-}
-
-function log() {
-    console.log("~~~ begin logging ~~~")
-    console.log(`game: ${game}`)
-    console.log(game)
-    console.log(`game.players: ${game.players}`)
-    console.log(game.players[0])
-    console.log(game.players[1])
-    console.log("~~~ end logging ~~~")
 }
 
 /*----- Sortable JS -----*/

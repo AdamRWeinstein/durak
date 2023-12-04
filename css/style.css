@@ -15,8 +15,8 @@ body {
 
 .PlayArea {
     border: 2px solid rgb(0, 0, 0);
-    height: 50%;
-    width: 100%;
+    height: 50vh;
+    width: 90%;
     display: flex;
     justify-content: space-around;
     flex-wrap: wrap;
@@ -25,31 +25,34 @@ body {
 .ATTACK_CARD {
     display: flex;
     flex-direction: column;
-    position: relative;
+    height: 100%;
 }
 
 .ATTACK_CARD > .DEFEND{
-    position: absolute;
-    top: 15%;
-    left: 15%;
-}
-
-#PlayArea.sortable-ghost.DEFEND {
-    position: absolute;
-    top: 15%;
-    left: 15%;
+    position: relative;
+    top: -20%;
+    left: 25%;
 }
 
 .Card {
-    max-height: 20vmin;
-    max-width: 40vmin;
-    transition: all ease-in-out .5;
+    aspect-ratio: 2/3;
+    object-fit: contain;
+    height: 100%;
+}
+
+.PlayArea > .ATTACK_CARD > .Card, .PlayArea > .sortable-ghost {
+    height: 168px;
 }
 
 .Player1HandContainer, .Player2HandContainer {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+.Player1Hand, .Player2Hand {
+    display: flex;
+    
 }
 
 #Player1EndTurn, #Player2EndTurn {
@@ -66,6 +69,7 @@ body {
 }
 
 .Player1Hand > .Card, .Player2Hand > .Card {
+    max-width: 112px;
     cursor: grab;
 }
 
@@ -74,6 +78,9 @@ body {
 }
 
 .hidden {
-    visibility: hidden;
+    display: none;
 }
 
+#devlog {
+    margin: 20px;
+}
