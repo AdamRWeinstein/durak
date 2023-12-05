@@ -15,7 +15,7 @@ body {
 
 .PlayArea {
     border: 2px solid rgb(0, 0, 0);
-    height: 50vh;
+    height: 30vh;
     width: 90%;
     display: flex;
     justify-content: space-around;
@@ -52,7 +52,6 @@ body {
 
 .Player1Hand, .Player2Hand {
     display: flex;
-    
 }
 
 #Player1EndTurn, #Player2EndTurn {

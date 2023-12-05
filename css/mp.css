@@ -13,19 +13,18 @@ body {
     justify-content: space-around;
 }
 
-#BeginGame {
+#StartGame {
     background-color: black;
     border: none;
     color: white;
     text-align: center;
-    font-size: 22px;
+    font-size: 40px;
     margin-top: 40px;
     cursor: pointer;
     border-radius: 50%;
     width: 300px;
     height: 300px;
 }
-
 
 .ATTACK_CARD {
     display: flex;
@@ -35,7 +34,7 @@ body {
 
 .ATTACK_CARD > .DEFEND_CARD {
     position: relative;
-    top: -20%;
+    top: -40%;
     left: 25%;
 }
 
@@ -48,6 +47,26 @@ body {
 
 .PlayArea > .ATTACK_CARD > .Card, .PlayArea > .sortable-ghost {
     height: 244px;
+}
+
+.PlayerContainer {
+    display: flex;
+}
+
+.PlayArea {
+    flex-shrink: 0;
+}
+
+.Hand {
+    height: 20vh;
+}
+
+#EndTurn {
+    margin-left: 200px;
+    margin-top: 20px;
+    width: 300px;
+    height: 280px;
+    font-size: 40px;
 }
 
 .hidden {
