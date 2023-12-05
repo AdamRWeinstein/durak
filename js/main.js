@@ -1,7 +1,6 @@
 /*----- imports -----*/
 import { CARDS, ROLE_ATTACK, ROLE_DEFEND, ATTACK_CARD, DEFEND_CARD } from './constants.js'
 
-
 /*----- state variables -----*/
 let game;
 let currentPlayers = 0;
