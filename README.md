@@ -1,4 +1,4 @@
-# Durak (Multiplayer In Development)
+# Durak (In Development)
 This is project one for the Software Engineering Intesive Bootcamp with [GeneralAssemb.ly](https://generalassemb.ly/education/software-engineering-immersive/). It is made with HTML, CSS, and JavaScript.
 
 ![Image](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Russian_card_game_Durak.jpg/1280px-Russian_card_game_Durak.jpg) <sup>[[Wikipedia]](https://en.wikipedia.org/wiki/Durak)</sup>
@@ -19,6 +19,7 @@ After each round, players draw back up to six cards as needed. The order always 
 ## Technologies Used
 - HTML, CSS, JavaScript
 - [SortableJS](https://github.com/SortableJS/Sortable)
+- [socket.io](https://socket.io/)
 
 ## Goals
 ### MVP
@@ -27,7 +28,10 @@ After each round, players draw back up to six cards as needed. The order always 
 - [ ] ~~Computer Players~~
 - [x] Playable from Start to Finish
 ### Stretch Goals
-- [ ] Multiplayer
+- [x] Multiplayer
 - [ ] Tutorial
 - [ ] Lightning Gameplay
 - [ ] Advanced Computer Players
+
+## Caveats
+There are currently some bugs in multiplayer surrounding the end game logic. These must still be captured, categorized, and fixed.
