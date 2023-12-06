@@ -1,6 +1,5 @@
-/*----- ??? -----*/
 /*----- Imports -----*/
-import { CARDS, ROLE_ATTACK, ROLE_DEFEND, ATTACK_CARD, DEFEND_CARD } from './constants.js'
+import { ROLE_ATTACK, ROLE_DEFEND, ATTACK_CARD, DEFEND_CARD } from './constants.js'
 import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
 
 
@@ -19,6 +18,7 @@ let role;
 let closer;
 let myTurn;
 let attackCardCounter = 0;
+let exited = false;
 
 /*----- Socket Variables -----*/
 const socket = io("http://localhost:3000");
@@ -106,6 +106,7 @@ function buildCard(cardData) {
 }
 
 function renderMessage() {
+    if(exited) return;
     let color = ["hearts", "diamonds"].includes(closer) ? "red" : "black"
     let closerSuit = closer.suit.slice(0, 1).toUpperCase() + closer.suit.slice(1)
     let msg = `<h1>Closer: <span style="color:${color}">${closerSuit}</span></h1>`
@@ -117,6 +118,11 @@ function renderMessage() {
         if(playArea.children.length !== 0) endButton.classList.remove("hidden");
     }
     message.innerHTML = msg;
+    
+    let title = "Durak - ";
+    title += role === ROLE_ATTACK ? "Attacker" : "Defender";
+    if(myTurn) title += " - Your Turn";
+    document.title = title;
 }
 
 /*----- Socket Events -----*/
@@ -128,16 +134,18 @@ function socketEventListeners(){
     socket.on('setRole', (data) => {
         console.log('setRole received')
         role = data;
+        renderMessage();
     });
 
     socket.on('setTurn', (data) => {
         console.log('setTurn received')
-        myTurn = data
+        myTurn = data;
         renderMessage();
     })
     
     socket.on('add cards', (cards) => {
         console.log('add cards received')
+        console.log(cards)
         addCard(cards);
     });
 
@@ -196,21 +204,35 @@ function socketEventListeners(){
     });
 
     socket.on('play defend card', (cardData) => {
-        console.log('play defend card received')
-        let card = buildCard(cardData.card)
-        card.classList.add(DEFEND_CARD)
-        const area = document.getElementById(cardData.area)
-        area.appendChild(card)
+        console.log('play defend card received');
+        let card = buildCard(cardData.card);
+        card.classList.add(DEFEND_CARD);
+        const area = document.getElementById(cardData.area);
+        area.appendChild(card);
         renderMessage();
     });
 
     socket.on('clear play area', () => {
-        console.log('clear play area received')
+        console.log('clear play area received');
         playArea.innerHTML = '';
-    })
+    });
 
-    socket.on('game already started', () => {
-        console.log("Error - Game already started. Disconnected from server.")
+    socket.on('exit', () => {
+        handContainer.classList.add("hidden");
+        document.title = 'Durak';
+        message.innerHTML = "<h1>You have shed all your cards!</h1>";
+        exited = true;
+    });
+
+    socket.on('durak', () => {
+        handContainer.classList.add("hidden");
+        document.title = 'Durak';
+        message.innerHTML = "<h1>You're the Durak! Better luck next time</h1>";
+        exited = true;
+    });
+
+    socket.on('not accepting connections', () => {
+        console.log("Error - Game is not accepting new connections. Disconnected from server.");
     });
 }
 

@@ -6,6 +6,7 @@ import { CARDS, ROLE_ATTACK, ROLE_DEFEND, ATTACK_CARD, DEFEND_CARD } from './con
 
 /*----- Cached Elements  -----*/
 let connectedUsers = {};
+let activeIndexes = [];
 let currentPlayers = 0;
 let deck = [];
 let cardsInPlay = [];
@@ -13,8 +14,10 @@ let playerHands = {};
 let defIndex;
 let currentAtkIndex;
 let lastPlayedAtkIndex;
+let firstAttackerIndex;
 let closer;
 let acceptingNewUsers = true;
+let endGame = false;
 
 /*----- Functions -----*/
 function shuffle(cards) {
@@ -29,28 +32,109 @@ function shuffle(cards) {
 function deal(num) {
     const cards = [];
     for (let i = 0; i < num && deck.length > 0; i++) {
-        cards.push(deck.shift());
+        let card = deck.shift();
+        cards.push(card);
     }
     return cards;
 }
 
 function findIndexOfPlayer(id) {
     //Returns an array of the indexes
-    let keys = Object.keys(connectedUsers); 
+    let keys = Object.keys(connectedUsers);
     for (let i = 0; i < keys.length; i++) {
         if (connectedUsers[keys[i]] === id) {
             //Returns the index where the given ID matches
-            return Number(keys[i]); 
+            return Number(keys[i]);
         }
     }
     //If the ID isn't found, return -1
-    return -1; 
+    return -1;
 }
 
-function endRound() {
+function endRound(defenderPickedUp) {
+    console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    console.log(`ending round - defenderPickedUp: ${defenderPickedUp}`);
     cardsInPlay.length = 0; //Empties the array for the new round
     io.emit('clear play area', '');
-    //TODO logic for swapping roles, dealing cards, etc.
+    io.to(connectedUsers[defIndex]).emit('setRole', ROLE_ATTACK);
+    let numPlayers = Object.keys(connectedUsers).length;
+    if (!endGame) {
+        //Deal first attacker up to 6, then go through attackers, then finally defender
+        let currentIndex = firstAttackerIndex;
+        do {
+            console.log(`currentIndex: ${currentIndex}`)
+            if (currentIndex !== defIndex) {
+                let userID = connectedUsers[currentIndex];
+                let hand = deal(6 - playerHands[userID]);
+                console.log("UserID and new cards drawn")
+                console.log(userID)
+                console.log(hand)
+                io.to(userID).emit('add cards', hand);
+            }
+            currentIndex = (currentIndex + 1) % numPlayers;
+        } while (currentIndex !== firstAttackerIndex)
+        let defID = connectedUsers[defIndex];
+        let hand = deal(6 - playerHands[defID]);
+        console.log("UserID and new cards drawn")
+        console.log(defID)
+        console.log(hand)
+        io.to(defID).emit('add cards', hand);
+        //Enable endGame flag if deck is empty
+        if (deck.length === 0) endGame = true;
+    }
+    //Set up indexes for next round
+    let increaseBy = defenderPickedUp ? 2 : 1;
+    let currentDefIndexInActive = activeIndexes.indexOf(defIndex);
+    let nextDefIndexInActive = (currentDefIndexInActive + increaseBy) % activeIndexes.length;
+    console.log(`defIndex = ${defIndex}`)
+    defIndex = activeIndexes[nextDefIndexInActive];
+    console.log(`defIndex = ${defIndex}`)
+    let currentFirstAttackerIndexInActive = activeIndexes.indexOf(firstAttackerIndex);
+    let nextFirstAttackerIndexInActive = (currentFirstAttackerIndexInActive + increaseBy) % activeIndexes.length;
+    console.log(`firstAttackerIndex = ${firstAttackerIndex}`)
+    firstAttackerIndex = activeIndexes[nextFirstAttackerIndexInActive];
+    console.log(`firstAttackerIndex = ${firstAttackerIndex}`)
+    currentAtkIndex = firstAttackerIndex;
+    lastPlayedAtkIndex = firstAttackerIndex;
+    io.to(connectedUsers[firstAttackerIndex]).emit('setTurn', true);
+    io.to(connectedUsers[defIndex]).emit('setRole', ROLE_DEFEND);
+    console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+}
+
+function handleEndTurn(socket, defExit) {
+    console.log("turn ended")
+    socket.emit('setTurn', false);
+    let playerIndex = findIndexOfPlayer(socket.id);
+    let numPlayers = Object.keys(connectedUsers).length;
+    if (playerIndex === currentAtkIndex) {
+        let nextAttackerIndex = (playerIndex + 1) % numPlayers;
+        //Skip the defender
+        if (nextAttackerIndex === defIndex) {
+            nextAttackerIndex = (nextAttackerIndex + 1) % numPlayers;
+        }
+        if (nextAttackerIndex === lastPlayedAtkIndex) {
+            endRound(false);
+            return;
+        } else {
+            //Using string coercion to map nextAttackerIndex to the object key property
+            io.to(connectedUsers[nextAttackerIndex]).emit('setTurn', true);
+            currentAtkIndex = nextAttackerIndex;
+            return;
+        }
+    } else if (playerIndex === defIndex && !defExit) {
+        console.log("~~~~~~~~~~~")
+        console.log("cardsInPlay:")
+        console.log(cardsInPlay)
+        console.log("~~~~~~~~~~~")
+        io.to(socket.id).emit('pickup cards', cardsInPlay);
+        playerHands[socket.id] += cardsInPlay.length;
+        endRound(true);
+        return;
+    } else if (defExit) {
+        //Treat as if Defender picked up
+        //Next player after Defender becomes Attacker, not Defender
+        endRound(true)
+    } else return;
 }
 
 /*----- Socket Variables -----*/
@@ -66,13 +150,14 @@ const io = new Server(server, {
 /*----- Socket Events -----*/
 io.on("connection", (socket) => {
     console.log(`User connected! ID: ${socket.id}`);
-    if(acceptingNewUsers){
+    if (acceptingNewUsers) {
         connectedUsers[currentPlayers] = socket.id;
+        activeIndexes.push(currentPlayers);
         currentPlayers++;
-        if(currentPlayers === 6) acceptingNewUsers = false;
+        if (currentPlayers === 6) acceptingNewUsers = false;
         console.log(connectedUsers)
     } else {
-        socket.emit('game already started', '');
+        socket.emit('not accepting connections', '');
         socket.disconnect(true);
     }
 
@@ -83,20 +168,18 @@ io.on("connection", (socket) => {
     socket.on('start game', () => {
         acceptingNewUsers = false;
         io.emit('start game');
-        console.log("Starting Game")
         // Shuffle Deck
         deck = shuffle(CARDS);
-        console.log("Deck Shuffled")
         // Determine Closer
         closer = deck[deck.length - 1];
-        console.log("closer")
+        console.log("closer:")
         console.log(closer)
         // Determine Defender
         defIndex = Math.floor(Math.random() * (currentPlayers))
-        console.log("Defender Determined")
         // Determine Current Attacker
         currentAtkIndex = defIndex !== 0 ? defIndex - 1 : currentPlayers - 1;
         lastPlayedAtkIndex = currentAtkIndex;
+        firstAttackerIndex = currentAtkIndex;
         // Assign Roles, Deal 6 Cards to each player, and notify of closer
         for (let i = 0; i < currentPlayers; i++) {
             console.log({
@@ -117,50 +200,43 @@ io.on("connection", (socket) => {
     socket.on('play attack card', (card) => {
         console.log("play attack card")
         playerHands[socket.id] -= 1;
-        console.log("player hands:")
-        console.log(playerHands)
+        if (playerHands[socket.id] === 0 && endGame) {
+            socket.emit('exit', '');
+            activeIndexes.splice(currentAtkIndex, 1);
+            if(activeIndexes.length === 1) {
+
+            } else handleEndTurn(socket, false);
+        }
         lastPlayedAtkIndex = findIndexOfPlayer(socket.id);
+        console.log("~~~~~~~~~~~~~")
+        console.log("new atk card in play:")
+        console.log(card)
+        console.log("~~~~~~~~~~~~~")
         cardsInPlay.push(card);
         io.emit('play attack card', card);
     });
 
-    socket.on('play defend card', (card) => {
+    socket.on('play defend card', (cardData) => {
         console.log("play defend card")
         playerHands[socket.id] -= 1;
-        console.log("player hands:")
-        console.log(playerHands)
-        console.log(card)
-        cardsInPlay.push(card);
-        io.emit('play defend card', card);
+        if (playerHands[socket.id] === 0 && endGame) {
+            socket.emit('exit', '');
+            activeIndexes.splice(defIndex, 1);
+            if(activeIndexes.length === 1) {
+
+            } else handleEndTurn(connectedUsers[currentAtkIndex], true);
+        }
+        console.log("~~~~~~~~~~~~~")
+        console.log("new def card in play:")
+        console.log(cardData)
+        console.log("~~~~~~~~~~~~~")
+        cardsInPlay.push(cardData.card);
+        io.emit('play defend card', cardData);
         io.to(connectedUsers[lastPlayedAtkIndex]).emit('setTurn', true);
     });
 
     socket.on('end turn', () => {
-        console.log("turn ended")
-        let playerIndex = findIndexOfPlayer(socket.id);
-        if(playerIndex === currentAtkIndex) {
-            let nextAttackerIndex = playerIndex + 1;
-            if(nextAttackerIndex >= Object.keys(connectedUsers).length) nextAttackerIndex = 0; 
-            if(nextAttackerIndex === defIndex) nextAttackerIndex++;
-            if(nextAttackerIndex === lastPlayedAtkIndex) {
-                endRound();//
-                return;
-            } else {
-                socket.emit('setTurn', false);
-                //Using string coercion to map nextAttackerIndex to the object key property
-                io.to(connectedUsers[nextAttackerIndex]).emit('setTurn', true);
-                currentAtkIndex = nextAttackerIndex;
-                return;
-            }
-        } else if(playerIndex === defIndex){
-            console.log(cardsInPlay)
-            io.to(socket.id).emit('pickup cards', cardsInPlay);
-            playerHands[socket.id] += cardsInPlay.length;
-            endRound();
-            return;
-        }
-        console.log("err 001 - You shouldn't be here")
-        return;
+        handleEndTurn(socket, false)
     });
 });
 
