@@ -1,5 +1,5 @@
 # Durak (In Development)
-This is project one for the Software Engineering Intesive Bootcamp with [GeneralAssemb.ly](https://generalassemb.ly/education/software-engineering-immersive/). It is made with HTML, CSS, and JavaScript.
+This is project one for the Software Engineering Intesive Bootcamp with [GeneralAssemb.ly](https://generalassemb.ly/education/software-engineering-immersive/). It is made with HTML, CSS, and JavaScript. A singe-player version of the game is available [here](http://arw-durak.surge.sh/)
 
 ![Image](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Russian_card_game_Durak.jpg/1280px-Russian_card_game_Durak.jpg) <sup>[[Wikipedia]](https://en.wikipedia.org/wiki/Durak)</sup>
 
